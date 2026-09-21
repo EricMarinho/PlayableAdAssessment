@@ -1,0 +1,42 @@
+# Dependências do Node (caso use para servidor local de desenvolvimento ou bundler)
+node_modules/
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Arquivos de Build/Produção (se você usar algum bundler como Vite ou Webpack)
+dist/
+build/
+out/
+
+# Arquivos do Sistema Operacional (Mac e Windows)
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Arquivos de Editores de Código / IDEs (Cursor, VSCode, WebStorm, etc)
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*.md
+
+# Logs gerais
+logs
+*.log
+
+# O arquivo final do assessment (muito importante para não commitar o ZIP pesado sem querer!)
+*.zip
+*.tar
+*.gz
+*.rar
