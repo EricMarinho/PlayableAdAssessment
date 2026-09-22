@@ -48,15 +48,17 @@ type CoinParticle = {
 };
 
 const ParticleConfig = {
-  MIN_COUNT: 1,
-  MAX_COUNT: 3,
+  MIN_COUNT: 4,
+  MAX_COUNT: 7,
   SPARKS_PER_TAP: 8,
   SPARK_MIN_SPEED: 160,
   SPARK_MAX_SPEED: 380,
-  MAX_PARTICLES: 180,
+  MAX_PARTICLES: 240,
   GRAVITY: 820,
   SPARK_GRAVITY: 420,
   DRAG: 0.985,
+  COIN_GOLD: "#FFC93C",
+  COIN_OUTLINE: "#7A2E0A",
   COIN_ORANGE: "#F58324",
   COIN_PURPLE: "#7845D8",
   SPARK_WARM: "#FFF6E8",
@@ -215,8 +217,9 @@ function spawnCoins(clientX: number, clientY: number): void {
   const rect = canvas.getBoundingClientRect();
   const x = clientX - rect.left;
   const y = clientY - rect.top;
-  const count = 1 + Math.floor(Math.random() * 3);
-  // clamp to config bounds (MIN 1 MAX 3) -- already satisfied by formula
+  const count =
+    ParticleConfig.MIN_COUNT +
+    Math.floor(Math.random() * (ParticleConfig.MAX_COUNT - ParticleConfig.MIN_COUNT + 1));
   const clampedCount = Math.max(ParticleConfig.MIN_COUNT, Math.min(count, ParticleConfig.MAX_COUNT));
   for (let i = 0; i < clampedCount; i++) {
     const radius = 6 + Math.random() * 6;
@@ -224,8 +227,8 @@ function spawnCoins(clientX: number, clientY: number): void {
     const p: CoinParticle = {
       x,
       y,
-      vx: (Math.random() - 0.5) * 120,
-      vy: -(180 + Math.random() * 140),
+      vx: (Math.random() - 0.5) * 320,
+      vy: -(300 + Math.random() * 220),
       radius,
       life,
       maxLife: life,
@@ -234,19 +237,18 @@ function spawnCoins(clientX: number, clientY: number): void {
       wobbleSpeed: 2 + Math.random() * 3,
       kind: "coin",
       rot: Math.random() * Math.PI * 2,
-      rotSpeed: (Math.random() - 0.5) * 6,
-      color: ParticleConfig.COIN_ORANGE,
+      rotSpeed: (Math.random() - 0.5) * 16,
+      color: ParticleConfig.COIN_GOLD,
     };
     particles.push(p);
   }
-  // glowing sparks shooting outward
+  // fast-fading white sparks for impact
   for (let i = 0; i < ParticleConfig.SPARKS_PER_TAP; i++) {
     const angle = Math.random() * Math.PI * 2;
     const speed =
       ParticleConfig.SPARK_MIN_SPEED +
       Math.random() * (ParticleConfig.SPARK_MAX_SPEED - ParticleConfig.SPARK_MIN_SPEED);
-    const life = 400 + Math.random() * 300;
-    const pick = Math.random();
+    const life = 280 + Math.random() * 200;
     const p: CoinParticle = {
       x,
       y,
@@ -261,12 +263,7 @@ function spawnCoins(clientX: number, clientY: number): void {
       kind: "spark",
       rot: 0,
       rotSpeed: 0,
-      color:
-        pick < 0.5
-          ? ParticleConfig.SPARK_WARM
-          : pick < 0.8
-            ? ParticleConfig.COIN_ORANGE
-            : ParticleConfig.COIN_PURPLE,
+      color: ParticleConfig.SPARK_WARM,
     };
     particles.push(p);
   }
@@ -303,7 +300,8 @@ function tickParticles(dtSec: number): void {
     p.y += p.vy * dtSec;
     p.rot += p.rotSpeed * dtSec;
     p.life -= dtSec * 1000;
-    p.alpha = Math.max(0, Math.min(1, p.life / p.maxLife));
+    const linear = Math.max(0, Math.min(1, p.life / p.maxLife));
+    p.alpha = p.kind === "spark" ? Math.pow(linear, 1.6) : linear;
   }
   particles = particles.filter((p) => p.life > 0 && p.alpha > 0);
 }
@@ -349,6 +347,9 @@ function drawParticles(): void {
       fxCtx.beginPath();
       fxCtx.arc(0, 0, p.radius, 0, Math.PI * 2);
       fxCtx.fill();
+      fxCtx.lineWidth = 2;
+      fxCtx.strokeStyle = ParticleConfig.COIN_OUTLINE;
+      fxCtx.stroke();
       fxCtx.fillStyle = ParticleConfig.HIGHLIGHT;
       fxCtx.beginPath();
       fxCtx.arc(-p.radius * 0.3, -p.radius * 0.35, p.radius * 0.28, 0, Math.PI * 2);
