@@ -348,7 +348,7 @@ function checkMilestones(): void {
   }
 }
 
-function endGame(_reason: "taps" | "time"): void {
+function endGame(reason: "taps" | "time"): void {
   if (state.phase !== "playing") return;
   state.phase = "ended";
   stopTimer();
@@ -358,9 +358,16 @@ function endGame(_reason: "taps" | "time"): void {
     foxBtn.disabled = true;
     foxBtn.setAttribute("aria-disabled", "true");
   }
+  const won = state.taps >= GameConfig.MAX_TAPS || reason === "taps";
+  const endTitle = document.getElementById("end-title") as HTMLElement | null;
   const endStats = document.getElementById("end-stats") as HTMLElement | null;
+  if (endTitle) {
+    endTitle.textContent = won ? "You Did It!" : "Time's Up!";
+  }
   if (endStats) {
-    endStats.textContent = `You tapped ${state.taps} times — ${Math.ceil(state.remainingMs / 1000)}s left. You earned ${state.taps} Scrambly Coins (Demo Balance)!`;
+    endStats.textContent = won
+      ? "You earned 50 Scrambly Coins (Demo Balance)! In Scrambly, your playtime turns into real rewards."
+      : `You tapped ${state.taps} times. You earned ${state.taps} Scrambly Coins (Demo Balance)! In Scrambly, your playtime turns into real rewards.`;
   }
   const endScreen = document.getElementById("end-screen") as HTMLElement | null;
   if (endScreen) {
