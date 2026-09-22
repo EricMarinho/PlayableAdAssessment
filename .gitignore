@@ -40,3 +40,6 @@ logs
 *.tar
 *.gz
 *.rar
+
+# Arquivos de referência do Scrambly
+Scrambly-reference
