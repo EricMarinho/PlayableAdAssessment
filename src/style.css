@@ -320,3 +320,225 @@ button {
     padding: 1rem;
   }
 }
+
+/* ——— Toast notifications ——— */
+#toast-container {
+  position: absolute;
+  top: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  pointer-events: none;
+  width: max-content;
+  max-width: calc(100% - 2rem);
+}
+
+.toast {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.65rem 1.2rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-ink);
+  color: var(--color-warm);
+  border: 2px solid var(--color-orange);
+  box-shadow: 0 8px 20px rgba(32, 19, 56, 0.28);
+  font-weight: 700;
+  font-size: 0.9rem;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateY(12px) scale(0.96);
+  will-change: transform, opacity;
+}
+
+.toast.show {
+  animation: toast-in 320ms var(--ease-bounce) forwards;
+}
+
+.toast.hide {
+  animation: toast-out 220ms var(--ease-out) forwards;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes toast-out {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.98);
+  }
+}
+
+/* ——— End screen overlay ——— */
+#end-screen {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 2rem;
+  background: color-mix(in srgb, var(--color-ink) 88%, transparent);
+  backdrop-filter: blur(2px);
+  text-align: center;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(20px);
+  transition:
+    opacity 320ms var(--ease-smooth),
+    transform 420ms var(--ease-bounce),
+    visibility 320ms var(--ease-smooth);
+  pointer-events: none;
+}
+
+#end-screen[hidden] {
+  display: none !important;
+}
+
+#end-screen.is-open {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+#end-screen h2 {
+  font-size: clamp(1.5rem, 5vw, 2rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--color-warm);
+  line-height: 1.15;
+}
+
+#end-screen p {
+  font-size: clamp(0.9rem, 3.5vw, 1rem);
+  color: color-mix(in srgb, var(--color-warm) 85%, transparent);
+  max-width: 30ch;
+  line-height: 1.5;
+}
+
+#end-stats {
+  font-weight: 700;
+  color: var(--color-warm);
+}
+
+#explore-btn,
+#play-again-btn {
+  padding: 0.9rem 2rem;
+  border-radius: var(--radius-pill);
+  font-weight: 700;
+  font-size: 1rem;
+  letter-spacing: 0.02em;
+  transition:
+    transform 180ms var(--ease-bounce),
+    box-shadow 180ms var(--ease-smooth),
+    filter 180ms var(--ease-smooth);
+}
+
+#explore-btn {
+  margin-top: 0.5rem;
+  background: var(--color-orange);
+  color: var(--color-warm);
+  box-shadow: 0 8px 20px rgba(245, 131, 36, 0.35);
+}
+
+#explore-btn:hover {
+  transform: translateY(-1px) scale(1.02);
+  box-shadow: 0 10px 28px rgba(245, 131, 36, 0.45);
+}
+
+#explore-btn:active,
+#play-again-btn:active {
+  transform: scale(0.97);
+}
+
+#play-again-btn {
+  background: var(--color-warm);
+  color: var(--color-ink);
+  box-shadow: 0 8px 20px rgba(32, 19, 56, 0.15);
+}
+
+#play-again-btn:hover {
+  transform: translateY(-1px) scale(1.02);
+  box-shadow: 0 10px 28px rgba(32, 19, 56, 0.2);
+}
+
+#explore-btn:focus-visible,
+#play-again-btn:focus-visible {
+  outline: 3px solid var(--color-warm);
+  outline-offset: 3px;
+}
+
+#explore-btn:focus-visible {
+  outline-color: var(--color-warm);
+}
+
+#play-again-btn:focus-visible {
+  outline-color: var(--color-purple);
+}
+
+#cta-confirm {
+  margin-top: 0.25rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-warm);
+}
+
+#cta-confirm[hidden] {
+  display: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast,
+  .toast.show,
+  .toast.hide {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .toast {
+    opacity: 1;
+    transform: none;
+  }
+
+  .toast.hide {
+    opacity: 0;
+  }
+
+  #end-screen {
+    transition: none !important;
+    transform: none !important;
+  }
+
+  #end-screen.is-open {
+    transform: none !important;
+  }
+
+  #progress-fill {
+    transition: none;
+  }
+
+  .is-squishing {
+    animation: none;
+  }
+}

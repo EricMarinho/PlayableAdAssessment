@@ -1,12 +1,19 @@
 import "./style.css";
 
-type GamePhase = "start" | "playing";
+type GamePhase = "start" | "playing" | "ended";
 
 const GameConfig = {
   DURATION_MS: 30000,
   MAX_TAPS: 50,
   TICK_MS: 120,
 } as const;
+
+const MILESTONES = [
+  { taps: 15, msg: "Casual Gamer! +10 Demo Coins" },
+  { taps: 35, msg: "App Explorer! +20 Demo Coins" },
+] as const;
+
+const shownMilestones = new Set<number>();
 
 type GameState = {
   phase: GamePhase;
@@ -113,6 +120,9 @@ function tick(): void {
   if (state.remainingMs <= 0) {
     state.remainingMs = 0;
     stopTimer();
+    updateHud();
+    endGame("time");
+    return;
   }
   updateHud();
 }
@@ -143,6 +153,7 @@ function pauseTimer(): void {
 }
 
 function resumeTimer(): void {
+  if (state.phase === "ended") return;
   if (state.phase !== "playing") return;
   if (!state.isPaused) return;
   if (state.remainingMs <= 0) return;
@@ -161,6 +172,7 @@ function pauseFx(): void {
 }
 
 function resumeFx(): void {
+  if (state.phase === "ended") return;
   fxPaused = false;
   lastFrameMs = 0;
   if (state.phase === "playing" && !document.hidden && particles.length > 0 && rafId === null) {
@@ -169,6 +181,7 @@ function resumeFx(): void {
 }
 
 function handleVisibilityChange(): void {
+  if (state.phase === "ended") return;
   if (document.hidden) {
     pauseTimer();
     pauseFx();
@@ -216,6 +229,7 @@ function spawnCoins(clientX: number, clientY: number): void {
 }
 
 function onScramblyTap(e: Event): void {
+  if (state.phase === "ended") return;
   const ev = e as CustomEvent<TapPayload>;
   const detail = ev.detail;
   if (!detail) return;
@@ -268,6 +282,10 @@ function loop(ts: number): void {
     rafId = null;
     return;
   }
+  if (state.phase === "ended") {
+    rafId = null;
+    return;
+  }
   if (lastFrameMs === 0) lastFrameMs = ts;
   let dt = (ts - lastFrameMs) / 1000;
   lastFrameMs = ts;
@@ -298,12 +316,107 @@ function clearParticles(): void {
 // expose for future reset / HMR verification without triggering noUnusedLocals
 void clearParticles;
 
+function showToast(msg: string): void {
+  const container = document.getElementById("toast-container") as HTMLElement | null;
+  if (!container) return;
+  // max 1 visible toast
+  container.replaceChildren();
+  const toast = document.createElement("div");
+  toast.className = "toast";
+  toast.setAttribute("role", "status");
+  toast.textContent = msg;
+  container.appendChild(toast);
+  void toast.offsetWidth;
+  toast.classList.add("show");
+  window.setTimeout(() => {
+    toast.classList.remove("show");
+    toast.classList.add("hide");
+    window.setTimeout(() => {
+      if (toast.parentNode === container) {
+        container.removeChild(toast);
+      }
+    }, 250);
+  }, 1800);
+}
+
+function checkMilestones(): void {
+  for (const m of MILESTONES) {
+    if (state.taps >= m.taps && !shownMilestones.has(m.taps)) {
+      shownMilestones.add(m.taps);
+      showToast(m.msg);
+    }
+  }
+}
+
+function endGame(reason: "taps" | "time"): void {
+  if (state.phase !== "playing") return;
+  void reason;
+  state.phase = "ended";
+  stopTimer();
+  pauseFx();
+  const foxBtn = document.getElementById("fox-btn") as HTMLButtonElement | null;
+  if (foxBtn) {
+    foxBtn.disabled = true;
+    foxBtn.setAttribute("aria-disabled", "true");
+  }
+  const endStats = document.getElementById("end-stats") as HTMLElement | null;
+  if (endStats) {
+    endStats.textContent = `You tapped ${state.taps} times — ${Math.ceil(state.remainingMs / 1000)}s left. You earned ${state.taps} Scrambly Coins (Demo Balance)!`;
+  }
+  const endScreen = document.getElementById("end-screen") as HTMLElement | null;
+  if (endScreen) {
+    endScreen.hidden = false;
+    void endScreen.offsetWidth;
+    endScreen.classList.add("is-open");
+  }
+  const exploreBtn = document.getElementById("explore-btn") as HTMLButtonElement | null;
+  if (exploreBtn) {
+    exploreBtn.focus();
+  }
+}
+
+function handleExploreClick(): void {
+  console.log("CTA clicked");
+  const confirm = document.getElementById("cta-confirm") as HTMLElement | null;
+  if (confirm) confirm.hidden = false;
+}
+
+function handlePlayAgainClick(): void {
+  clearParticles();
+  state.taps = 0;
+  state.remainingMs = GameConfig.DURATION_MS;
+  state.isPaused = false;
+  shownMilestones.clear();
+  updateHud();
+  const endScreen = document.getElementById("end-screen") as HTMLElement | null;
+  if (endScreen) {
+    endScreen.classList.remove("is-open");
+    endScreen.hidden = true;
+  }
+  const confirm = document.getElementById("cta-confirm") as HTMLElement | null;
+  if (confirm) confirm.hidden = true;
+  const foxBtn = document.getElementById("fox-btn") as HTMLButtonElement | null;
+  if (foxBtn) {
+    foxBtn.disabled = false;
+    foxBtn.removeAttribute("aria-disabled");
+    foxBtn.focus();
+  }
+  state.phase = "playing";
+  if (fxPaused) {
+    fxPaused = false;
+    lastFrameMs = 0;
+  }
+  startTimer();
+}
+
 function handleFoxTap(x: number, y: number): void {
+  if (state.phase === "ended") return;
   if (state.phase !== "playing") return;
   if (state.remainingMs <= 0) return;
   state.taps = Math.min(state.taps + 1, GameConfig.MAX_TAPS);
 
   updateHud();
+  checkMilestones();
 
   const foxBtn = document.getElementById("fox-btn") as HTMLElement | null;
   if (foxBtn) {
@@ -314,6 +427,10 @@ function handleFoxTap(x: number, y: number): void {
 
   const payload: TapPayload = { taps: state.taps, x, y };
   window.dispatchEvent(new CustomEvent<TapPayload>("scrambly:tap", { detail: payload }));
+
+  if (state.taps >= GameConfig.MAX_TAPS) {
+    endGame("taps");
+  }
 }
 
 function handleFoxPointerDown(e: PointerEvent): void {
@@ -357,6 +474,8 @@ function init(): void {
   const startBtn = document.getElementById("start-btn") as HTMLButtonElement | null;
   const foxBtn = document.getElementById("fox-btn") as HTMLButtonElement | null;
   const fxCanvas = document.getElementById("fx-canvas") as HTMLCanvasElement | null;
+  const exploreBtn = document.getElementById("explore-btn") as HTMLButtonElement | null;
+  const playAgainBtn = document.getElementById("play-again-btn") as HTMLButtonElement | null;
   if (fxCanvas && !fxCtx) {
     fxCtx = fxCanvas.getContext("2d") as CanvasRenderingContext2D | null;
   }
@@ -374,6 +493,16 @@ function init(): void {
     foxBtn.addEventListener("pointerdown", handleFoxPointerDown);
     foxBtn.removeEventListener("click", handleFoxClick);
     foxBtn.addEventListener("click", handleFoxClick);
+  }
+
+  if (exploreBtn) {
+    exploreBtn.removeEventListener("click", handleExploreClick);
+    exploreBtn.addEventListener("click", handleExploreClick);
+  }
+
+  if (playAgainBtn) {
+    playAgainBtn.removeEventListener("click", handlePlayAgainClick);
+    playAgainBtn.addEventListener("click", handlePlayAgainClick);
   }
 
   document.removeEventListener("visibilitychange", handleVisibilityChange);
