@@ -11,6 +11,7 @@
   <body>
     <div id="app">
       <div id="game-ui">
+        <div id="toast-container" aria-live="polite" aria-atomic="true"></div>
         <div id="hud">
           <span id="timer" role="timer" aria-live="off">30s</span>
           <span id="tap-count" aria-live="polite">0</span>
@@ -35,7 +36,6 @@
         <p>Warm, rounded Scrambly demo - tap the fox to earn demo coins!</p>
         <button id="start-btn" type="button">Tap to Start</button>
       </div>
-      <div id="toast-container" aria-live="polite" aria-atomic="true"></div>
       <div id="end-screen" role="dialog" aria-modal="true" aria-labelledby="end-title" hidden>
         <h2 id="end-title">You Did It!</h2>
         <p>You earned 50 Scrambly Coins (Demo Balance)! In Scrambly, your playtime turns into real rewards.</p>

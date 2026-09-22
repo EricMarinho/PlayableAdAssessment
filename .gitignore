@@ -29,7 +29,6 @@ Thumbs.db
 *.njsproj
 *.sln
 *.sw?
-*.md
 
 # Logs gerais
 logs
