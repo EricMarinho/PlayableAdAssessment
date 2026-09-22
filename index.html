@@ -11,13 +11,22 @@
   <body>
     <div id="app">
       <div id="game-ui">
-        <img
-          src="./scrambly-fox-reference.webp"
-          alt="Scrambly fox mascot holding a purple gaming controller with orange coins"
-          width="294"
-          height="320"
-          decoding="async"
-        />
+        <div id="hud">
+          <span id="timer" role="timer" aria-live="off">30s</span>
+          <span id="tap-count" aria-live="polite">0</span>
+        </div>
+        <div id="progress" role="progressbar" aria-valuemin="0" aria-valuemax="50" aria-valuenow="0" aria-label="Progress">
+          <div id="progress-fill"></div>
+        </div>
+        <button id="fox-btn" type="button" aria-label="Tap the fox to earn points">
+          <img
+            src="./scrambly-fox-reference.webp"
+            alt="Scrambly fox mascot holding a purple gaming controller with orange coins"
+            width="294"
+            height="320"
+            decoding="async"
+          />
+        </button>
         <p>Scrambly - Tap &amp; Reward (demo)</p>
       </div>
       <canvas id="fx-canvas" aria-hidden="true"></canvas>
