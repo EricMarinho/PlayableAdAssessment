@@ -11,6 +11,7 @@
   <body>
     <div id="app">
       <div id="game-ui">
+        <!-- toast kept inside #game-ui to avoid viewport clipping (WP-1) -->
         <div id="toast-container" aria-live="polite" aria-atomic="true"></div>
         <div id="hud">
           <span id="timer" role="timer" aria-live="off">30s</span>
@@ -30,6 +31,7 @@
         </button>
         <p>Scrambly - Tap &amp; Reward (demo)</p>
       </div>
+      <!-- fx-canvas pointer-events none overlay -->
       <canvas id="fx-canvas" aria-hidden="true"></canvas>
       <div id="start-screen" role="dialog" aria-modal="true" aria-labelledby="start-title">
         <h1 id="start-title">Tap to Start</h1>

@@ -64,6 +64,7 @@ let state: GameState = {
 
 let initialized = false;
 let lastPointerMs = 0;
+let endHideTimeout: number | null = null;
 
 // --- particle FX state ---
 let particles: CoinParticle[] = [];
@@ -76,8 +77,10 @@ function sizeFxCanvas(): void {
   const canvas = document.getElementById("fx-canvas") as HTMLCanvasElement | null;
   if (!canvas) return;
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
-  canvas.width = window.innerWidth * dpr;
-  canvas.height = window.innerHeight * dpr;
+  const w = canvas.clientWidth || window.innerWidth;
+  const h = canvas.clientHeight || window.innerHeight;
+  canvas.width = Math.round(w * dpr);
+  canvas.height = Math.round(h * dpr);
   const ctx = fxCtx ?? (canvas.getContext("2d") as CanvasRenderingContext2D | null);
   if (ctx) {
     if (!fxCtx) fxCtx = ctx;
@@ -158,8 +161,7 @@ function resumeTimer(): void {
   if (!state.isPaused) return;
   if (state.remainingMs <= 0) return;
   state.isPaused = false;
-  state.lastTick = performance.now();
-  state.timerId = window.setInterval(tick, GameConfig.TICK_MS);
+  startTimer();
 }
 
 function pauseFx(): void {
@@ -193,10 +195,11 @@ function handleVisibilityChange(): void {
 
 function handleResize(): void {
   sizeFxCanvas();
-  console.log(`resize: ${window.innerWidth} x ${window.innerHeight}`);
+  if (import.meta.env.DEV) console.log(`resize: ${window.innerWidth} x ${window.innerHeight}`);
 }
 
 function spawnCoins(clientX: number, clientY: number): void {
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
   const canvas = document.getElementById("fx-canvas") as HTMLCanvasElement | null;
   if (!canvas) return;
   const rect = canvas.getBoundingClientRect();
@@ -245,8 +248,8 @@ function onScramblyTap(e: Event): void {
 function tickParticles(dtSec: number): void {
   for (const p of particles) {
     p.vy += ParticleConfig.GRAVITY * dtSec;
-    p.vx *= ParticleConfig.DRAG;
-    const wobbleOffset = Math.sin(p.life * 0.01 * p.wobbleSpeed) * p.wobble;
+    p.vx *= Math.pow(ParticleConfig.DRAG, dtSec * 60);
+    const wobbleOffset = Math.sin((p.maxLife - p.life) * 0.01 * p.wobbleSpeed) * p.wobble;
     p.x += p.vx * dtSec + wobbleOffset * dtSec * 12;
     p.y += p.vy * dtSec;
     p.life -= dtSec * 1000;
@@ -313,9 +316,6 @@ function clearParticles(): void {
   lastFrameMs = 0;
 }
 
-// expose for future reset / HMR verification without triggering noUnusedLocals
-void clearParticles;
-
 function showToast(msg: string): void {
   const container = document.getElementById("toast-container") as HTMLElement | null;
   if (!container) return;
@@ -348,9 +348,8 @@ function checkMilestones(): void {
   }
 }
 
-function endGame(reason: "taps" | "time"): void {
+function endGame(_reason: "taps" | "time"): void {
   if (state.phase !== "playing") return;
-  void reason;
   state.phase = "ended";
   stopTimer();
   pauseFx();
@@ -365,6 +364,10 @@ function endGame(reason: "taps" | "time"): void {
   }
   const endScreen = document.getElementById("end-screen") as HTMLElement | null;
   if (endScreen) {
+    if (endHideTimeout !== null) {
+      window.clearTimeout(endHideTimeout);
+      endHideTimeout = null;
+    }
     endScreen.hidden = false;
     void endScreen.offsetWidth;
     endScreen.classList.add("is-open");
@@ -376,7 +379,7 @@ function endGame(reason: "taps" | "time"): void {
 }
 
 function handleExploreClick(): void {
-  console.log("CTA clicked");
+  if (import.meta.env.DEV) console.log("CTA clicked");
   const confirm = document.getElementById("cta-confirm") as HTMLElement | null;
   if (confirm) confirm.hidden = false;
 }
@@ -391,7 +394,11 @@ function handlePlayAgainClick(): void {
   const endScreen = document.getElementById("end-screen") as HTMLElement | null;
   if (endScreen) {
     endScreen.classList.remove("is-open");
-    endScreen.hidden = true;
+    if (endHideTimeout !== null) window.clearTimeout(endHideTimeout);
+    endHideTimeout = window.setTimeout(() => {
+      endScreen.hidden = true;
+      endHideTimeout = null;
+    }, 320);
   }
   const confirm = document.getElementById("cta-confirm") as HTMLElement | null;
   if (confirm) confirm.hidden = true;
@@ -418,7 +425,7 @@ function handleFoxTap(x: number, y: number): void {
   updateHud();
   checkMilestones();
 
-  const foxBtn = document.getElementById("fox-btn") as HTMLElement | null;
+  const foxBtn = document.getElementById("fox-btn") as HTMLButtonElement | null;
   if (foxBtn) {
     foxBtn.classList.remove("is-squishing");
     void foxBtn.offsetWidth;
@@ -453,6 +460,8 @@ function handleStartClick(): void {
   state.isPaused = false;
   const overlay = document.getElementById("start-screen") as HTMLElement | null;
   if (overlay) overlay.style.display = "none";
+  const foxBtn = document.getElementById("fox-btn") as HTMLButtonElement | null;
+  if (foxBtn) foxBtn.focus({ preventScroll: true });
   updateHud();
   startTimer();
   // lazily start FX loop on next tap; ensure fx not paused
@@ -460,16 +469,14 @@ function handleStartClick(): void {
     fxPaused = false;
     lastFrameMs = 0;
   }
-  console.log("game started");
+  if (import.meta.env.DEV) console.log("game started");
 }
 
 function init(): void {
   if (initialized) return;
-  // HMR guard: window persists across Vite re-evaluations
+  // HMR guard: window persists across Vite re-evaluations — trivial guard, flag set after DOM check below
   const w = window as unknown as { __scramblyInitialized?: boolean };
   if (w.__scramblyInitialized) return;
-  w.__scramblyInitialized = true;
-  initialized = true;
 
   const startBtn = document.getElementById("start-btn") as HTMLButtonElement | null;
   const foxBtn = document.getElementById("fox-btn") as HTMLButtonElement | null;
@@ -513,6 +520,10 @@ function init(): void {
 
   window.removeEventListener("scrambly:tap", onScramblyTap as EventListener);
   window.addEventListener("scrambly:tap", onScramblyTap as EventListener);
+
+  // mark initialized after DOM wiring — keeps guard trivial but after DOM check
+  w.__scramblyInitialized = true;
+  initialized = true;
 }
 
 if (document.readyState === "loading") {
