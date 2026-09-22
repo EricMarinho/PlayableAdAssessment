@@ -25,6 +25,7 @@ type GameState = {
 };
 
 type TapPayload = {
+  // intentionally unused: kept so downstream handlers can rely on the { taps, x, y } footprint
   taps: number;
   x: number;
   y: number;
@@ -59,8 +60,6 @@ const ParticleConfig = {
   DRAG: 0.985,
   COIN_GOLD: "#FFC93C",
   COIN_OUTLINE: "#7A2E0A",
-  COIN_ORANGE: "#F58324",
-  COIN_PURPLE: "#7845D8",
   SPARK_WARM: "#FFF6E8",
   HIGHLIGHT: "rgba(255, 255, 255, 0.85)",
 } as const;
@@ -98,10 +97,6 @@ function sizeFxCanvas(): void {
     if (!fxCtx) fxCtx = ctx;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
-}
-
-function sizeCanvas(): void {
-  sizeFxCanvas();
 }
 
 function updateHud(): void {
@@ -168,7 +163,6 @@ function pauseTimer(): void {
 }
 
 function resumeTimer(): void {
-  if (state.phase === "ended") return;
   if (state.phase !== "playing") return;
   if (!state.isPaused) return;
   if (state.remainingMs <= 0) return;
@@ -207,7 +201,6 @@ function handleVisibilityChange(): void {
 
 function handleResize(): void {
   sizeFxCanvas();
-  if (import.meta.env.DEV) console.log(`resize: ${window.innerWidth} x ${window.innerHeight}`);
 }
 
 function spawnCoins(clientX: number, clientY: number): void {
@@ -220,8 +213,7 @@ function spawnCoins(clientX: number, clientY: number): void {
   const count =
     ParticleConfig.MIN_COUNT +
     Math.floor(Math.random() * (ParticleConfig.MAX_COUNT - ParticleConfig.MIN_COUNT + 1));
-  const clampedCount = Math.max(ParticleConfig.MIN_COUNT, Math.min(count, ParticleConfig.MAX_COUNT));
-  for (let i = 0; i < clampedCount; i++) {
+  for (let i = 0; i < count; i++) {
     const radius = 6 + Math.random() * 6;
     const life = 700 + Math.random() * 400;
     const p: CoinParticle = {
@@ -303,7 +295,7 @@ function tickParticles(dtSec: number): void {
     const linear = Math.max(0, Math.min(1, p.life / p.maxLife));
     p.alpha = p.kind === "spark" ? Math.pow(linear, 1.6) : linear;
   }
-  particles = particles.filter((p) => p.life > 0 && p.alpha > 0);
+  particles = particles.filter((p) => p.life > 0);
 }
 
 function drawParticles(): void {
@@ -311,7 +303,6 @@ function drawParticles(): void {
   fxCtx.clearRect(0, 0, window.innerWidth, window.innerHeight);
   fxCtx.globalCompositeOperation = "lighter";
   for (const p of particles) {
-    if (p.alpha <= 0) continue;
     fxCtx.save();
     fxCtx.globalAlpha = p.alpha;
     if (p.kind === "spark") {
@@ -379,7 +370,6 @@ function loop(ts: number): void {
   let dt = (ts - lastFrameMs) / 1000;
   lastFrameMs = ts;
   if (dt > 0.05) dt = 0.05;
-  if (dt < 0) dt = 0;
   tickParticles(dt);
   drawParticles();
   if (particles.length > 0) {
@@ -434,7 +424,7 @@ function checkMilestones(): void {
   }
 }
 
-function endGame(reason: "taps" | "time"): void {
+function endGame(_reason: "taps" | "time"): void {
   if (state.phase !== "playing") return;
   state.phase = "ended";
   stopTimer();
@@ -444,7 +434,7 @@ function endGame(reason: "taps" | "time"): void {
     foxBtn.disabled = true;
     foxBtn.setAttribute("aria-disabled", "true");
   }
-  const won = state.taps >= GameConfig.MAX_TAPS || reason === "taps";
+  const won = state.taps >= GameConfig.MAX_TAPS;
   const endTitle = document.getElementById("end-title") as HTMLElement | null;
   const endStats = document.getElementById("end-stats") as HTMLElement | null;
   if (endTitle) {
@@ -472,7 +462,7 @@ function endGame(reason: "taps" | "time"): void {
 }
 
 function handleExploreClick(): void {
-  if (import.meta.env.DEV) console.log("CTA clicked");
+  console.log("CTA clicked");
   const confirm = document.getElementById("cta-confirm") as HTMLElement | null;
   if (confirm) confirm.hidden = false;
 }
@@ -510,7 +500,6 @@ function handlePlayAgainClick(): void {
 }
 
 function handleFoxTap(x: number, y: number): void {
-  if (state.phase === "ended") return;
   if (state.phase !== "playing") return;
   if (state.remainingMs <= 0) return;
   state.taps = Math.min(state.taps + 1, GameConfig.MAX_TAPS);
@@ -566,7 +555,6 @@ function handleStartClick(): void {
     fxPaused = false;
     lastFrameMs = 0;
   }
-  if (import.meta.env.DEV) console.log("game started");
 }
 
 function handleFoxAnimationEnd(e: AnimationEvent): void {
@@ -590,7 +578,7 @@ function init(): void {
     fxCtx = fxCanvas.getContext("2d") as CanvasRenderingContext2D | null;
   }
 
-  sizeCanvas();
+  sizeFxCanvas();
   updateHud();
 
   if (startBtn) {

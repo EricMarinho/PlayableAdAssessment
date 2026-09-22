@@ -8,7 +8,6 @@
   --color-warm: #FFF6E8;
 
   /* Radii — warm / rounded mood */
-  --radius-sm: 8px;
   --radius-md: 16px;
   --radius-lg: 24px;
   --radius-pill: 999px;
@@ -125,7 +124,6 @@ button:focus-visible {
 }
 
 /* ——— Floating bokeh (transform + opacity only, sparse) ——— */
-.bokeh-layer,
 .bokeh {
   position: absolute;
   inset: -30% -25%;
@@ -134,8 +132,6 @@ button:focus-visible {
   opacity: 0.5;
 }
 
-.bokeh-layer::before,
-.bokeh-layer::after,
 .bokeh::before,
 .bokeh::after {
   content: "";
@@ -148,7 +144,6 @@ button:focus-visible {
   animation-iteration-count: infinite;
 }
 
-.bokeh-layer::before,
 .bokeh::before {
   left: 12%;
   width: 22px;
@@ -164,7 +159,6 @@ button:focus-visible {
     170px 840px 0 -2px rgba(255, 201, 60, 0.5);
 }
 
-.bokeh-layer::after,
 .bokeh::after {
   left: 38%;
   width: 16px;
@@ -178,19 +172,16 @@ button:focus-visible {
     230px 920px 0 -5px rgba(255, 255, 255, 0.45);
 }
 
-.bokeh-layer--a::before,
 .bokeh--a::before {
   animation-duration: 19s;
   animation-delay: -6s;
 }
 
-.bokeh-layer--a::after,
 .bokeh--a::after {
   animation-duration: 26s;
   animation-delay: -17s;
 }
 
-.bokeh-layer--b::before,
 .bokeh--b::before {
   left: 55%;
   width: 28px;
@@ -206,7 +197,6 @@ button:focus-visible {
   animation-delay: -11s;
 }
 
-.bokeh-layer--b::after,
 .bokeh--b::after {
   left: 70%;
   width: 20px;
@@ -222,7 +212,6 @@ button:focus-visible {
   animation-direction: reverse;
 }
 
-.bokeh-layer--b,
 .bokeh--b {
   opacity: 0.35;
 }
@@ -251,8 +240,7 @@ button:focus-visible {
 }
 
 /* Mascot image — reference asset */
-#game-ui img,
-.mascot {
+#game-ui img {
   width: min(294px, 70vw);
   height: auto;
   border-radius: var(--radius-md);
@@ -348,10 +336,6 @@ button:focus-visible {
   z-index: -1;
   pointer-events: none;
   background: radial-gradient(circle, #fff6e8 0%, rgba(255, 246, 232, 0.6) 35%, transparent 70%);
-}
-
-#fox-btn:focus-visible {
-  outline: 3px solid var(--color-purple);
 }
 
 #fox-btn:active {
@@ -518,8 +502,7 @@ button:focus-visible {
     gap: 0.5rem;
   }
 
-  #game-ui img,
-  .mascot {
+  #game-ui img {
     width: min(240px, 68vw);
     max-height: 38vh;
     object-fit: contain;
@@ -538,18 +521,15 @@ button:focus-visible {
   }
 
   #start-screen {
-    gap: 0.75rem;
     padding: 0.75rem;
     overflow-y: auto;
   }
 
   #end-screen {
-    gap: 0.6rem;
     padding: 0.75rem;
   }
 
-  #game-ui img,
-  .mascot {
+  #game-ui img {
     width: min(220px, 52vw);
     max-height: 32vh;
     object-fit: contain;
@@ -563,8 +543,7 @@ button:focus-visible {
     max-height: 100%;
   }
 
-  #game-ui img,
-  .mascot {
+  #game-ui img {
     max-height: 40vh;
   }
 }
@@ -760,14 +739,6 @@ button:focus-visible {
   outline-offset: 3px;
 }
 
-#explore-btn:focus-visible {
-  outline-color: var(--color-ink);
-}
-
-#play-again-btn:focus-visible {
-  outline-color: var(--color-ink);
-}
-
 #cta-confirm {
   margin-top: 0.25rem;
   font-size: 0.9rem;
@@ -808,29 +779,15 @@ button:focus-visible {
   #end-screen {
     transition: none !important;
     transform: none !important;
-    backdrop-filter: none !important;
-  }
-
-  #end-screen.is-open {
-    transform: none !important;
-  }
-
-  #start-screen {
-    backdrop-filter: none !important;
   }
 
   .is-glowing img {
     animation: none !important;
   }
 
-  .bokeh-layer,
-  .bokeh-layer--a,
-  .bokeh-layer--b,
   .bokeh,
   .bokeh--a,
   .bokeh--b,
-  .bokeh-layer::before,
-  .bokeh-layer::after,
   .bokeh::before,
   .bokeh::after {
     animation: none !important;
