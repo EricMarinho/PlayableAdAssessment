@@ -23,6 +23,29 @@ type TapPayload = {
   y: number;
 };
 
+type CoinParticle = {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  radius: number;
+  life: number;
+  maxLife: number;
+  alpha: number;
+  wobble: number;
+  wobbleSpeed: number;
+};
+
+const ParticleConfig = {
+  MIN_COUNT: 1,
+  MAX_COUNT: 3,
+  MAX_PARTICLES: 180,
+  GRAVITY: 820,
+  DRAG: 0.985,
+  COIN_ORANGE: "#F58324",
+  HIGHLIGHT: "rgba(255, 255, 255, 0.85)",
+} as const;
+
 let state: GameState = {
   phase: "start",
   taps: 0,
@@ -35,11 +58,28 @@ let state: GameState = {
 let initialized = false;
 let lastPointerMs = 0;
 
-function sizeCanvas(): void {
+// --- particle FX state ---
+let particles: CoinParticle[] = [];
+let fxCtx: CanvasRenderingContext2D | null = null;
+let rafId: number | null = null;
+let lastFrameMs = 0;
+let fxPaused = false;
+
+function sizeFxCanvas(): void {
   const canvas = document.getElementById("fx-canvas") as HTMLCanvasElement | null;
   if (!canvas) return;
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  canvas.width = window.innerWidth * dpr;
+  canvas.height = window.innerHeight * dpr;
+  const ctx = fxCtx ?? (canvas.getContext("2d") as CanvasRenderingContext2D | null);
+  if (ctx) {
+    if (!fxCtx) fxCtx = ctx;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+}
+
+function sizeCanvas(): void {
+  sizeFxCanvas();
 }
 
 function updateHud(): void {
@@ -111,18 +151,152 @@ function resumeTimer(): void {
   state.timerId = window.setInterval(tick, GameConfig.TICK_MS);
 }
 
+function pauseFx(): void {
+  fxPaused = true;
+  if (rafId !== null) {
+    window.cancelAnimationFrame(rafId);
+    rafId = null;
+  }
+  lastFrameMs = 0;
+}
+
+function resumeFx(): void {
+  fxPaused = false;
+  lastFrameMs = 0;
+  if (state.phase === "playing" && !document.hidden && particles.length > 0 && rafId === null) {
+    rafId = window.requestAnimationFrame(loop);
+  }
+}
+
 function handleVisibilityChange(): void {
   if (document.hidden) {
     pauseTimer();
+    pauseFx();
   } else {
     resumeTimer();
+    resumeFx();
   }
 }
 
 function handleResize(): void {
-  sizeCanvas();
+  sizeFxCanvas();
   console.log(`resize: ${window.innerWidth} x ${window.innerHeight}`);
 }
+
+function spawnCoins(clientX: number, clientY: number): void {
+  const canvas = document.getElementById("fx-canvas") as HTMLCanvasElement | null;
+  if (!canvas) return;
+  const rect = canvas.getBoundingClientRect();
+  const x = clientX - rect.left;
+  const y = clientY - rect.top;
+  const count = 1 + Math.floor(Math.random() * 3);
+  // clamp to config bounds (MIN 1 MAX 3) -- already satisfied by formula
+  const clampedCount = Math.max(ParticleConfig.MIN_COUNT, Math.min(count, ParticleConfig.MAX_COUNT));
+  for (let i = 0; i < clampedCount; i++) {
+    const radius = 6 + Math.random() * 6;
+    const life = 700 + Math.random() * 400;
+    const p: CoinParticle = {
+      x,
+      y,
+      vx: (Math.random() - 0.5) * 120,
+      vy: -(180 + Math.random() * 140),
+      radius,
+      life,
+      maxLife: life,
+      alpha: 1,
+      wobble: 0.4 + Math.random() * 1.2,
+      wobbleSpeed: 2 + Math.random() * 3,
+    };
+    particles.push(p);
+  }
+  if (particles.length > ParticleConfig.MAX_PARTICLES) {
+    const overflow = particles.length - ParticleConfig.MAX_PARTICLES;
+    particles.splice(0, overflow);
+  }
+}
+
+function onScramblyTap(e: Event): void {
+  const ev = e as CustomEvent<TapPayload>;
+  const detail = ev.detail;
+  if (!detail) return;
+  spawnCoins(detail.x, detail.y);
+  if (state.phase === "playing" && !document.hidden && !fxPaused) {
+    if (rafId === null) {
+      lastFrameMs = 0;
+      rafId = window.requestAnimationFrame(loop);
+    }
+  }
+}
+
+function tickParticles(dtSec: number): void {
+  for (const p of particles) {
+    p.vy += ParticleConfig.GRAVITY * dtSec;
+    p.vx *= ParticleConfig.DRAG;
+    const wobbleOffset = Math.sin(p.life * 0.01 * p.wobbleSpeed) * p.wobble;
+    p.x += p.vx * dtSec + wobbleOffset * dtSec * 12;
+    p.y += p.vy * dtSec;
+    p.life -= dtSec * 1000;
+    p.alpha = Math.max(0, Math.min(1, p.life / p.maxLife));
+  }
+  particles = particles.filter((p) => p.life > 0 && p.alpha > 0);
+}
+
+function drawParticles(): void {
+  if (!fxCtx) return;
+  fxCtx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+  for (const p of particles) {
+    if (p.alpha <= 0) continue;
+    fxCtx.save();
+    fxCtx.globalAlpha = p.alpha;
+    fxCtx.fillStyle = ParticleConfig.COIN_ORANGE;
+    fxCtx.beginPath();
+    fxCtx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+    fxCtx.fill();
+    fxCtx.fillStyle = ParticleConfig.HIGHLIGHT;
+    fxCtx.beginPath();
+    const hx = p.x - p.radius * 0.3;
+    const hy = p.y - p.radius * 0.35;
+    const hr = p.radius * 0.28;
+    fxCtx.arc(hx, hy, hr, 0, Math.PI * 2);
+    fxCtx.fill();
+    fxCtx.restore();
+  }
+}
+
+function loop(ts: number): void {
+  if (fxPaused || document.hidden) {
+    rafId = null;
+    return;
+  }
+  if (lastFrameMs === 0) lastFrameMs = ts;
+  let dt = (ts - lastFrameMs) / 1000;
+  lastFrameMs = ts;
+  if (dt > 0.05) dt = 0.05;
+  if (dt < 0) dt = 0;
+  tickParticles(dt);
+  drawParticles();
+  if (particles.length > 0) {
+    rafId = window.requestAnimationFrame(loop);
+  } else {
+    rafId = null;
+    lastFrameMs = 0;
+  }
+}
+
+function clearParticles(): void {
+  particles = [];
+  if (fxCtx) {
+    fxCtx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+  }
+  if (rafId !== null) {
+    window.cancelAnimationFrame(rafId);
+    rafId = null;
+  }
+  lastFrameMs = 0;
+}
+
+// expose for future reset / HMR verification without triggering noUnusedLocals
+void clearParticles;
 
 function handleFoxTap(x: number, y: number): void {
   if (state.phase !== "playing") return;
@@ -164,6 +338,11 @@ function handleStartClick(): void {
   if (overlay) overlay.style.display = "none";
   updateHud();
   startTimer();
+  // lazily start FX loop on next tap; ensure fx not paused
+  if (fxPaused) {
+    fxPaused = false;
+    lastFrameMs = 0;
+  }
   console.log("game started");
 }
 
@@ -177,6 +356,10 @@ function init(): void {
 
   const startBtn = document.getElementById("start-btn") as HTMLButtonElement | null;
   const foxBtn = document.getElementById("fox-btn") as HTMLButtonElement | null;
+  const fxCanvas = document.getElementById("fx-canvas") as HTMLCanvasElement | null;
+  if (fxCanvas && !fxCtx) {
+    fxCtx = fxCanvas.getContext("2d") as CanvasRenderingContext2D | null;
+  }
 
   sizeCanvas();
   updateHud();
@@ -198,6 +381,9 @@ function init(): void {
 
   window.removeEventListener("resize", handleResize);
   window.addEventListener("resize", handleResize);
+
+  window.removeEventListener("scrambly:tap", onScramblyTap as EventListener);
+  window.addEventListener("scrambly:tap", onScramblyTap as EventListener);
 }
 
 if (document.readyState === "loading") {
