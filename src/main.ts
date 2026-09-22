@@ -347,9 +347,15 @@ function drawParticles(): void {
       fxCtx.beginPath();
       fxCtx.arc(0, 0, p.radius, 0, Math.PI * 2);
       fxCtx.fill();
+      fxCtx.shadowColor = "rgba(0,0,0,0.2)";
+      fxCtx.shadowBlur = 4;
+      fxCtx.shadowOffsetY = 2;
       fxCtx.lineWidth = 2;
       fxCtx.strokeStyle = ParticleConfig.COIN_OUTLINE;
       fxCtx.stroke();
+      fxCtx.shadowColor = "transparent";
+      fxCtx.shadowBlur = 0;
+      fxCtx.shadowOffsetY = 0;
       fxCtx.fillStyle = ParticleConfig.HIGHLIGHT;
       fxCtx.beginPath();
       fxCtx.arc(-p.radius * 0.3, -p.radius * 0.35, p.radius * 0.28, 0, Math.PI * 2);

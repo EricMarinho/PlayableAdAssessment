@@ -114,6 +114,68 @@ button:focus-visible {
   z-index: 1;
 }
 
+/* ——— Floating bokeh (transform + opacity only, sparse) ——— */
+.bokeh {
+  position: absolute;
+  inset: -20% 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.5;
+  will-change: transform, opacity;
+}
+
+.bokeh::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 12%;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0) 70%);
+  box-shadow:
+    60px 120px 0 -4px rgba(255, 246, 232, 0.7),
+    140px 260px 0 -2px rgba(255, 255, 255, 0.6),
+    220px 140px 0 -6px rgba(255, 201, 60, 0.55),
+    90px 420px 0 -3px rgba(255, 255, 255, 0.55),
+    200px 560px 0 -5px rgba(255, 246, 232, 0.65),
+    40px 700px 0 -4px rgba(255, 255, 255, 0.5),
+    170px 840px 0 -2px rgba(255, 201, 60, 0.5);
+}
+
+.bokeh--a {
+  animation: bokeh-rise 16s linear infinite;
+}
+
+.bokeh--b {
+  opacity: 0.35;
+  animation: bokeh-rise 23s linear infinite reverse;
+}
+
+.bokeh--b::before {
+  left: 55%;
+  width: 28px;
+  height: 28px;
+  box-shadow:
+    30px 160px 0 -6px rgba(255, 255, 255, 0.55),
+    120px 340px 0 -4px rgba(255, 246, 232, 0.6),
+    60px 520px 0 -8px rgba(255, 201, 60, 0.5),
+    190px 680px 0 -5px rgba(255, 255, 255, 0.5),
+    90px 860px 0 -3px rgba(255, 246, 232, 0.55),
+    210px 980px 0 -6px rgba(255, 255, 255, 0.45);
+}
+
+@keyframes bokeh-rise {
+  from {
+    transform: translate3d(0, 12%, 0);
+    opacity: 0.35;
+  }
+  to {
+    transform: translate3d(0, -12%, 0);
+    opacity: 0.65;
+  }
+}
+
 /* Mascot image — reference asset */
 #game-ui img,
 .mascot {
@@ -154,12 +216,14 @@ button:focus-visible {
 
 #timer {
   color: var(--color-ink);
-  box-shadow: 0 12px 28px rgba(32, 19, 56, 0.25);
+  box-shadow: 0 8px 16px rgba(32, 19, 56, 0.15);
+  border-bottom: 2px solid var(--color-purple);
 }
 
 #tap-count {
   color: var(--color-purple);
-  box-shadow: 0 12px 28px rgba(32, 19, 56, 0.25);
+  box-shadow: 0 8px 16px rgba(32, 19, 56, 0.15);
+  border-bottom: 2px solid var(--color-purple);
 }
 
 /* ——— Progress bar ——— */
@@ -169,7 +233,8 @@ button:focus-visible {
   border-radius: var(--radius-pill);
   background: #ffffff;
   overflow: hidden;
-  box-shadow: 0 8px 20px rgba(32, 19, 56, 0.2), inset 0 1px 0 #fff;
+  box-shadow: 0 8px 16px rgba(32, 19, 56, 0.15), inset 0 1px 0 #fff;
+  border-bottom: 2px solid var(--color-purple);
 }
 
 #progress-fill {
@@ -184,6 +249,8 @@ button:focus-visible {
 /* ——— Fox tap target ——— */
 #fox-btn {
   display: block;
+  position: relative;
+  isolation: isolate;
   padding: 0;
   border: none;
   background: transparent;
@@ -197,6 +264,16 @@ button:focus-visible {
   line-height: 0;
   transition: transform 120ms var(--ease-out);
   outline-offset: 4px;
+}
+
+/* Sunburst backlight behind mascot */
+#fox-btn::before {
+  content: "";
+  position: absolute;
+  inset: -30%;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(circle, #fff6e8 0%, rgba(255, 246, 232, 0.6) 35%, transparent 70%);
 }
 
 #fox-btn:focus-visible {
@@ -287,7 +364,8 @@ button:focus-visible {
   background: #ffffff;
   background: var(--color-warm);
   border-radius: var(--radius-lg);
-  box-shadow: 0 24px 60px rgba(32, 19, 56, 0.35);
+  border-bottom: 2px solid var(--color-purple);
+  box-shadow: 0 8px 16px rgba(32, 19, 56, 0.15);
   max-width: 320px;
   width: 100%;
 }
@@ -317,7 +395,8 @@ button:focus-visible {
   font-weight: 800;
   font-size: 1rem;
   letter-spacing: 0.02em;
-  box-shadow: 0 12px 28px rgba(32, 19, 56, 0.25);
+  box-shadow: 0 8px 16px rgba(32, 19, 56, 0.15);
+  border-bottom: 2px solid var(--color-purple);
   transition:
     transform 180ms var(--ease-bounce),
     box-shadow 180ms var(--ease-smooth),
@@ -326,7 +405,7 @@ button:focus-visible {
 
 #start-btn:hover {
   transform: translateY(-1px) scale(1.02);
-  box-shadow: 0 16px 32px rgba(32, 19, 56, 0.3);
+  box-shadow: 0 8px 16px rgba(32, 19, 56, 0.15);
 }
 
 #start-btn:active {
@@ -441,7 +520,8 @@ button:focus-visible {
   background: #ffffff;
   color: var(--color-ink);
   border: none;
-  box-shadow: 0 16px 40px rgba(32, 19, 56, 0.28);
+  border-bottom: 2px solid var(--color-purple);
+  box-shadow: 0 8px 16px rgba(32, 19, 56, 0.15);
   font-weight: 800;
   font-size: 0.9rem;
   letter-spacing: 0.02em;
@@ -517,7 +597,8 @@ button:focus-visible {
   background: #ffffff;
   background: var(--color-warm);
   border-radius: var(--radius-lg);
-  box-shadow: 0 24px 60px rgba(32, 19, 56, 0.35);
+  border-bottom: 2px solid var(--color-purple);
+  box-shadow: 0 8px 16px rgba(32, 19, 56, 0.15);
   max-width: 320px;
   width: 100%;
 }
@@ -572,12 +653,13 @@ button:focus-visible {
   background: var(--color-orange);
   color: #fff;
   font-weight: 800;
-  box-shadow: 0 12px 28px rgba(32, 19, 56, 0.25);
+  box-shadow: 0 8px 16px rgba(32, 19, 56, 0.15);
+  border-bottom: 2px solid var(--color-purple);
 }
 
 #explore-btn:hover {
   transform: translateY(-1px) scale(1.02);
-  box-shadow: 0 16px 32px rgba(32, 19, 56, 0.3);
+  box-shadow: 0 8px 16px rgba(32, 19, 56, 0.15);
 }
 
 #explore-btn:active,
@@ -589,12 +671,13 @@ button:focus-visible {
   background: var(--color-purple);
   color: #fff;
   font-weight: 800;
-  box-shadow: 0 12px 28px rgba(32, 19, 56, 0.25);
+  box-shadow: 0 8px 16px rgba(32, 19, 56, 0.15);
+  border-bottom: 2px solid var(--color-ink);
 }
 
 #play-again-btn:hover {
   transform: translateY(-1px) scale(1.02);
-  box-shadow: 0 16px 32px rgba(32, 19, 56, 0.3);
+  box-shadow: 0 8px 16px rgba(32, 19, 56, 0.15);
 }
 
 #explore-btn:focus-visible,
@@ -664,6 +747,13 @@ button:focus-visible {
 
   .is-glowing img {
     animation: none !important;
+  }
+
+  .bokeh,
+  .bokeh--a,
+  .bokeh--b {
+    animation: none !important;
+    opacity: 0.25;
   }
 
   #fox-btn img {
