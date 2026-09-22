@@ -128,7 +128,7 @@ button:focus-visible {
 .bokeh-layer,
 .bokeh {
   position: absolute;
-  inset: -30% -5%;
+  inset: -30% -25%;
   z-index: 0;
   pointer-events: none;
   opacity: 0.5;
@@ -229,17 +229,23 @@ button:focus-visible {
 
 @keyframes bokeh-rise {
   0% {
-    transform: translateY(110%);
+    transform: translate(0, 110%);
     opacity: 0;
   }
   10% {
     opacity: 0.6;
   }
+  33% {
+    transform: translate(12px, 45%);
+  }
+  66% {
+    transform: translate(-12px, -45%);
+  }
   90% {
     opacity: 0.6;
   }
   100% {
-    transform: translateY(-110%);
+    transform: translate(-8px, -110%);
     opacity: 0;
   }
 }
