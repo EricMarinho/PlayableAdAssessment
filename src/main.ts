@@ -41,15 +41,25 @@ type CoinParticle = {
   alpha: number;
   wobble: number;
   wobbleSpeed: number;
+  kind: "coin" | "spark";
+  rot: number;
+  rotSpeed: number;
+  color: string;
 };
 
 const ParticleConfig = {
   MIN_COUNT: 1,
   MAX_COUNT: 3,
+  SPARKS_PER_TAP: 8,
+  SPARK_MIN_SPEED: 160,
+  SPARK_MAX_SPEED: 380,
   MAX_PARTICLES: 180,
   GRAVITY: 820,
+  SPARK_GRAVITY: 420,
   DRAG: 0.985,
   COIN_ORANGE: "#F58324",
+  COIN_PURPLE: "#7845D8",
+  SPARK_WARM: "#FFF6E8",
   HIGHLIGHT: "rgba(255, 255, 255, 0.85)",
 } as const;
 
@@ -222,6 +232,41 @@ function spawnCoins(clientX: number, clientY: number): void {
       alpha: 1,
       wobble: 0.4 + Math.random() * 1.2,
       wobbleSpeed: 2 + Math.random() * 3,
+      kind: "coin",
+      rot: Math.random() * Math.PI * 2,
+      rotSpeed: (Math.random() - 0.5) * 6,
+      color: ParticleConfig.COIN_ORANGE,
+    };
+    particles.push(p);
+  }
+  // glowing sparks shooting outward
+  for (let i = 0; i < ParticleConfig.SPARKS_PER_TAP; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed =
+      ParticleConfig.SPARK_MIN_SPEED +
+      Math.random() * (ParticleConfig.SPARK_MAX_SPEED - ParticleConfig.SPARK_MIN_SPEED);
+    const life = 400 + Math.random() * 300;
+    const pick = Math.random();
+    const p: CoinParticle = {
+      x,
+      y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed - 60,
+      radius: 1.5 + Math.random() * 1.5,
+      life,
+      maxLife: life,
+      alpha: 1,
+      wobble: 0,
+      wobbleSpeed: 0,
+      kind: "spark",
+      rot: 0,
+      rotSpeed: 0,
+      color:
+        pick < 0.5
+          ? ParticleConfig.SPARK_WARM
+          : pick < 0.8
+            ? ParticleConfig.COIN_ORANGE
+            : ParticleConfig.COIN_PURPLE,
     };
     particles.push(p);
   }
@@ -247,11 +292,16 @@ function onScramblyTap(e: Event): void {
 
 function tickParticles(dtSec: number): void {
   for (const p of particles) {
-    p.vy += ParticleConfig.GRAVITY * dtSec;
+    if (p.kind === "spark") {
+      p.vy += ParticleConfig.SPARK_GRAVITY * dtSec;
+    } else {
+      p.vy += ParticleConfig.GRAVITY * dtSec;
+    }
     p.vx *= Math.pow(ParticleConfig.DRAG, dtSec * 60);
     const wobbleOffset = Math.sin((p.maxLife - p.life) * 0.01 * p.wobbleSpeed) * p.wobble;
     p.x += p.vx * dtSec + wobbleOffset * dtSec * 12;
     p.y += p.vy * dtSec;
+    p.rot += p.rotSpeed * dtSec;
     p.life -= dtSec * 1000;
     p.alpha = Math.max(0, Math.min(1, p.life / p.maxLife));
   }
@@ -261,23 +311,52 @@ function tickParticles(dtSec: number): void {
 function drawParticles(): void {
   if (!fxCtx) return;
   fxCtx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+  fxCtx.globalCompositeOperation = "lighter";
   for (const p of particles) {
     if (p.alpha <= 0) continue;
     fxCtx.save();
     fxCtx.globalAlpha = p.alpha;
-    fxCtx.fillStyle = ParticleConfig.COIN_ORANGE;
-    fxCtx.beginPath();
-    fxCtx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-    fxCtx.fill();
-    fxCtx.fillStyle = ParticleConfig.HIGHLIGHT;
-    fxCtx.beginPath();
-    const hx = p.x - p.radius * 0.3;
-    const hy = p.y - p.radius * 0.35;
-    const hr = p.radius * 0.28;
-    fxCtx.arc(hx, hy, hr, 0, Math.PI * 2);
-    fxCtx.fill();
+    if (p.kind === "spark") {
+      // glowing halo (fake glow, no shadowBlur for perf)
+      fxCtx.fillStyle = p.color;
+      fxCtx.beginPath();
+      fxCtx.arc(p.x, p.y, p.radius * 2.2, 0, Math.PI * 2);
+      fxCtx.globalAlpha = p.alpha * 0.25;
+      fxCtx.fill();
+      fxCtx.globalAlpha = p.alpha;
+      fxCtx.beginPath();
+      fxCtx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+      fxCtx.fill();
+      fxCtx.fillStyle = "rgba(255,255,255,0.9)";
+      fxCtx.beginPath();
+      fxCtx.arc(p.x, p.y, p.radius * 0.4, 0, Math.PI * 2);
+      fxCtx.fill();
+    } else {
+      // rotating coin: squash-spin via scale(cos(rot))
+      fxCtx.translate(p.x, p.y);
+      fxCtx.rotate(p.rot * 0.25);
+      const squash = Math.abs(Math.cos(p.rot));
+      const sx = 0.45 + 0.55 * squash;
+      fxCtx.scale(sx, 1);
+      // halo
+      fxCtx.fillStyle = p.color;
+      fxCtx.globalAlpha = p.alpha * 0.3;
+      fxCtx.beginPath();
+      fxCtx.arc(0, 0, p.radius * 1.8, 0, Math.PI * 2);
+      fxCtx.fill();
+      fxCtx.globalAlpha = p.alpha;
+      fxCtx.fillStyle = p.color;
+      fxCtx.beginPath();
+      fxCtx.arc(0, 0, p.radius, 0, Math.PI * 2);
+      fxCtx.fill();
+      fxCtx.fillStyle = ParticleConfig.HIGHLIGHT;
+      fxCtx.beginPath();
+      fxCtx.arc(-p.radius * 0.3, -p.radius * 0.35, p.radius * 0.28, 0, Math.PI * 2);
+      fxCtx.fill();
+    }
     fxCtx.restore();
   }
+  fxCtx.globalCompositeOperation = "source-over";
 }
 
 function loop(ts: number): void {
@@ -435,8 +514,12 @@ function handleFoxTap(x: number, y: number): void {
   const foxBtn = document.getElementById("fox-btn") as HTMLButtonElement | null;
   if (foxBtn) {
     foxBtn.classList.remove("is-squishing");
+    foxBtn.classList.remove("is-glowing");
     void foxBtn.offsetWidth;
     foxBtn.classList.add("is-squishing");
+    if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      foxBtn.classList.add("is-glowing");
+    }
   }
 
   const payload: TapPayload = { taps: state.taps, x, y };
@@ -479,6 +562,12 @@ function handleStartClick(): void {
   if (import.meta.env.DEV) console.log("game started");
 }
 
+function handleFoxAnimationEnd(e: AnimationEvent): void {
+  if (e.animationName === "mascot-pulse") {
+    (e.currentTarget as HTMLElement | null)?.classList.remove("is-glowing");
+  }
+}
+
 function init(): void {
   if (initialized) return;
   // HMR guard: window persists across Vite re-evaluations — trivial guard, flag set after DOM check below
@@ -507,6 +596,8 @@ function init(): void {
     foxBtn.addEventListener("pointerdown", handleFoxPointerDown);
     foxBtn.removeEventListener("click", handleFoxClick);
     foxBtn.addEventListener("click", handleFoxClick);
+    foxBtn.removeEventListener("animationend", handleFoxAnimationEnd as EventListener);
+    foxBtn.addEventListener("animationend", handleFoxAnimationEnd as EventListener);
   }
 
   if (exploreBtn) {
